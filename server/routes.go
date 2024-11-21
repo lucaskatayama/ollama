@@ -1329,9 +1329,6 @@ func streamResponse(c *gin.Context, ch chan any) {
 		}
 
 		bts, err := json.Marshal(val)
-		fmt.Println(">>>>>>>>>>>>>>>>>")
-		fmt.Printf("%s", string(bts))
-		fmt.Println(">>>>>>>>>>>>>>>>>")
 		if err != nil {
 			slog.Info(fmt.Sprintf("streamResponse: json.Marshal failed with %s", err))
 			return false
@@ -1496,7 +1493,7 @@ func (s *Server) ChatHandler(c *gin.Context) {
 				res.TotalDuration = time.Since(checkpointStart)
 				res.LoadDuration = checkpointLoaded.Sub(checkpointStart)
 			}
-			
+
 			if len(req.Tools) > 0 && strings.HasPrefix(r.Content, "\\f") {
 				r.Content = strings.Replace(r.Content, "\\f", "", 1)
 				toolCall = true
