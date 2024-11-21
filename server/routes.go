@@ -1329,6 +1329,9 @@ func streamResponse(c *gin.Context, ch chan any) {
 		}
 
 		bts, err := json.Marshal(val)
+		fmt.Println(">>>>>>>>>>>>>>>>>")
+		fmt.Printf("%s", string(bts))
+		fmt.Println(">>>>>>>>>>>>>>>>>")
 		if err != nil {
 			slog.Info(fmt.Sprintf("streamResponse: json.Marshal failed with %s", err))
 			return false
@@ -1467,6 +1470,8 @@ func (s *Server) ChatHandler(c *gin.Context) {
 	ch := make(chan any)
 	go func() {
 		defer close(ch)
+		var sb strings.Builder
+		toolCall := false
 		if err := r.Completion(c.Request.Context(), llm.CompletionRequest{
 			Prompt:  prompt,
 			Images:  images,
@@ -1491,8 +1496,28 @@ func (s *Server) ChatHandler(c *gin.Context) {
 				res.TotalDuration = time.Since(checkpointStart)
 				res.LoadDuration = checkpointLoaded.Sub(checkpointStart)
 			}
+			
+			if len(req.Tools) > 0 && strings.HasPrefix(r.Content, "\\f") {
+				r.Content = strings.Replace(r.Content, "\\f", "", 1)
+				toolCall = true
+			}
+
+			if toolCall {
+				if r.Done {
+					if toolCalls, ok := m.parseToolCalls(sb.String()); ok {
+						res.Message.ToolCalls = toolCalls
+						res.Message.Content = ""
+					}
+					toolCall = false
+					ch <- res
+					return
+				}
+				sb.WriteString(r.Content)
+				return
+			}
 
 			ch <- res
+
 		}); err != nil {
 			ch <- gin.H{"error": err.Error()}
 		}
